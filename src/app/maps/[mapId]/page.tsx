@@ -27,9 +27,6 @@ const CATEGORY_LABELS: Record<CategoryValue, string> = {
   cafe: "カフェ", park: "公園", station: "駅", restaurant: "レストラン",
   shop: "ショップ", museum: "博物館", hotel: "ホテル", other: "その他",
 };
-const TRANSPORT_LABELS: Record<string, string> = {
-  walk: "徒歩", bicycle: "自転車", car: "車", train: "電車", bus: "バス",
-};
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 
@@ -110,11 +107,6 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
     loadMap(mapId);
   }
 
-  async function handleDeletePath(pathId: string) {
-    await fetch(`/api/maps/${mapId}/paths/${pathId}`, { method: "DELETE" });
-    loadMap(mapId);
-  }
-
   async function handleDeleteMap() {
     if (!confirm("このマップを削除しますか？")) return;
     const res = await fetch(`/api/maps/${mapId}`, { method: "DELETE" });
@@ -147,7 +139,6 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
 
   const isOwner = map.ownerId === currentUserId;
   const selectedPlace = map.places.find((p) => p.id === selectedPlaceId) ?? null;
-  const placeById = Object.fromEntries(map.places.map((p) => [p.id, p]));
 
   return (
     <div className="flex flex-col min-h-full bg-white dark:bg-gray-950">
@@ -271,28 +262,6 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
               </div>
             )}
 
-            {/* paths list */}
-            {map.paths.length > 0 && (
-              <div className="border border-gray-200 dark:border-gray-700 rounded p-4 space-y-2 bg-white dark:bg-gray-900">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">パス一覧</h3>
-                <ul className="space-y-1">
-                  {map.paths.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
-                      <span>
-                        {placeById[p.fromPlaceId]?.name ?? "?"}
-                        <span className="mx-1 text-gray-400">↔</span>
-                        {placeById[p.toPlaceId]?.name ?? "?"}
-                        <span className="ml-1 text-gray-400">({TRANSPORT_LABELS[p.transport] ?? p.transport})</span>
-                      </span>
-                      {isOwner && (
-                        <button type="button" onClick={() => handleDeletePath(p.id)}
-                          className="text-red-400 hover:text-red-600 ml-2">削除</button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
         </div>
 

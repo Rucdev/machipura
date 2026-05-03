@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Nav } from "@/components/nav";
+import { JourneyCanvas } from "@/components/journey-canvas";
+import type { CategoryValue } from "@/domain/shared/category";
 
 type ActionLog = {
   id: string;
@@ -23,6 +25,20 @@ type Journey = {
   status: string;
   logs: ActionLog[];
 };
+type Place = {
+  id: string;
+  name: string;
+  coordinate: { x: number; y: number };
+  category: { value: CategoryValue };
+};
+type Path = {
+  id: string;
+  fromPlaceId: string;
+  toPlaceId: string;
+  transport: string;
+  distanceKm: number;
+};
+type MapData = { places: Place[]; paths: Path[] };
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -39,13 +55,18 @@ function formatDuration(minutes: number) {
 export default function JourneyPage({ params }: { params: Promise<{ journeyId: string }> }) {
   const router = useRouter();
   const [journey, setJourney] = useState<Journey | null>(null);
+  const [mapData, setMapData] = useState<MapData | null>(null);
 
   useEffect(() => {
     params.then(({ journeyId }) => {
       fetch(`/api/journeys/${journeyId}`).then(async (r) => {
         if (r.status === 401) { router.push("/login"); return; }
         if (!r.ok) { router.push("/"); return; }
-        setJourney(await r.json());
+        const j: Journey = await r.json();
+        setJourney(j);
+        fetch(`/api/maps/${j.mapId}`).then(async (r2) => {
+          if (r2.ok) setMapData(await r2.json());
+        });
       });
     });
   }, [params, router]);
@@ -62,7 +83,7 @@ export default function JourneyPage({ params }: { params: Promise<{ journeyId: s
   return (
     <div className="flex flex-col min-h-full bg-white dark:bg-gray-950">
       <Nav />
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8 space-y-6">
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Journey記録</h1>
           <Link href={`/maps/${journey.mapId}`} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
@@ -73,9 +94,22 @@ export default function JourneyPage({ params }: { params: Promise<{ journeyId: s
         <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
           <p>出発時刻: {formatTime(journey.startedAt)}</p>
           <p>ステータス: {journey.status === "completed" ? "完了" : "進行中"}</p>
-          <p>経由地点数: {journey.logs.length}</p>
         </div>
 
+        {/* Canvas */}
+        {mapData && (
+          <JourneyCanvas
+            places={mapData.places}
+            paths={mapData.paths}
+            logs={journey.logs.map((l) => ({
+              placeId: l.placeId,
+              action: l.action,
+              arrivedAt: l.arrivedAt,
+            }))}
+          />
+        )}
+
+        {/* タイムライン */}
         <section>
           <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">軌跡</h2>
           {journey.logs.length === 0 ? (
@@ -98,9 +132,7 @@ export default function JourneyPage({ params }: { params: Promise<{ journeyId: s
                     <div className="flex items-baseline gap-2 mb-1">
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatTime(log.arrivedAt)}</span>
                       {log.placeName && (
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                          @ {log.placeName}
-                        </span>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">@ {log.placeName}</span>
                       )}
                       {!isMilestone && (
                         <span className="text-xs text-gray-400 dark:text-gray-500">
