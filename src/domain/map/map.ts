@@ -1,8 +1,6 @@
-import type { Address } from "../shared/address";
 import type { BusinessHours } from "../shared/business-hours";
 import type { Category } from "../shared/category";
-import type { Distance } from "../shared/distance";
-import type { Transport } from "../shared/transport";
+import type { Coordinate } from "../shared/coordinate";
 import { Path, type PathId } from "./path";
 import { Place, type PlaceId } from "./place";
 
@@ -38,7 +36,6 @@ export class MapAggregate {
 
   removePlace(placeId: PlaceId): void {
     if (!this._places.has(placeId)) throw new Error("Place not found");
-    // 関連するパスも削除
     for (const [pathId, path] of this._paths) {
       if (path.fromPlaceId === placeId || path.toPlaceId === placeId) {
         this._paths.delete(pathId);
@@ -51,8 +48,12 @@ export class MapAggregate {
     this.getPlace(placeId).rename(name);
   }
 
-  changePlaceAddress(placeId: PlaceId, address: Address): void {
-    this.getPlace(placeId).changeAddress(address);
+  changePlaceCoordinate(placeId: PlaceId, coordinate: Coordinate): void {
+    this.getPlace(placeId).changeCoordinate(coordinate);
+    for (const path of this._paths.values()) {
+      if (path.fromPlaceId === placeId) path.recalculateFrom(coordinate);
+      if (path.toPlaceId === placeId) path.recalculateTo(coordinate);
+    }
   }
 
   changePlaceCategory(placeId: PlaceId, category: Category): void {
@@ -63,10 +64,22 @@ export class MapAggregate {
     this.getPlace(placeId).changeBusinessHours(businessHours);
   }
 
-  addPath(path: Path): void {
-    if (!this._places.has(path.fromPlaceId)) throw new Error("fromPlace not found");
-    if (!this._places.has(path.toPlaceId)) throw new Error("toPlace not found");
+  addPath(fromPlaceId: PlaceId, toPlaceId: PlaceId, id: PathId): Path {
+    const from = this._places.get(fromPlaceId);
+    if (!from) throw new Error("fromPlace not found");
+    const to = this._places.get(toPlaceId);
+    if (!to) throw new Error("toPlace not found");
+    const path = new Path(
+      id,
+      fromPlaceId,
+      toPlaceId,
+      from.category.value,
+      to.category.value,
+      from.coordinate,
+      to.coordinate,
+    );
     this._paths.set(path.id, path);
+    return path;
   }
 
   removePath(pathId: PathId): void {
@@ -74,8 +87,14 @@ export class MapAggregate {
     this._paths.delete(pathId);
   }
 
-  outboundPaths(placeId: PlaceId): Path[] {
-    return this.paths.filter((p) => p.fromPlaceId === placeId);
+  // 無向グラフとして、placeId から辿れる隣接エッジを返す
+  outboundPaths(placeId: PlaceId): { path: Path; nextPlaceId: PlaceId }[] {
+    const result: { path: Path; nextPlaceId: PlaceId }[] = [];
+    for (const path of this._paths.values()) {
+      if (path.fromPlaceId === placeId) result.push({ path, nextPlaceId: path.toPlaceId });
+      else if (path.toPlaceId === placeId) result.push({ path, nextPlaceId: path.fromPlaceId });
+    }
+    return result;
   }
 
   private getPlace(placeId: PlaceId): Place {

@@ -26,7 +26,8 @@ export const places = sqliteTable("places", {
     .notNull()
     .references(() => maps.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  address: text("address").notNull(),
+  x: real("x").notNull(),
+  y: real("y").notNull(),
   category: text("category").notNull(),
   openHour: integer("open_hour").notNull(),
   openMinute: integer("open_minute").notNull(),
@@ -45,8 +46,12 @@ export const paths = sqliteTable("paths", {
   toPlaceId: text("to_place_id")
     .notNull()
     .references(() => places.id, { onDelete: "cascade" }),
-  transport: text("transport").notNull(),
-  distanceKm: real("distance_km").notNull(),
+  fromCategory: text("from_category").notNull(),
+  toCategory: text("to_category").notNull(),
+  fromX: real("from_x").notNull(),
+  fromY: real("from_y").notNull(),
+  toX: real("to_x").notNull(),
+  toY: real("to_y").notNull(),
 });
 
 export const characters = sqliteTable("characters", {
@@ -55,6 +60,7 @@ export const characters = sqliteTable("characters", {
   ownerId: text("owner_id").notNull(),
   // Traits はカテゴリごとの行動重みをJSONで保持
   traits: text("traits", { mode: "json" }).notNull(),
+  seed: integer("seed").notNull().default(0),
 });
 
 export const journeys = sqliteTable("journeys", {

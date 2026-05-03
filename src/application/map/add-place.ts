@@ -1,16 +1,17 @@
 import type { MapId } from "@/domain/map/map";
 import type { MapRepository } from "@/domain/map/map-repository";
 import { Place } from "@/domain/map/place";
-import { Address } from "@/domain/shared/address";
 import { BusinessHours } from "@/domain/shared/business-hours";
 import { Category, type CategoryValue } from "@/domain/shared/category";
+import { Coordinate } from "@/domain/shared/coordinate";
 import { randomUUID } from "crypto";
 
 export type AddPlaceInput = {
   mapId: MapId;
   requesterId: string;
   name: string;
-  address: string;
+  x: number;
+  y: number;
   category: CategoryValue;
   openHour: number;
   openMinute: number;
@@ -29,7 +30,7 @@ export async function addPlace(
   const place = new Place(
     randomUUID(),
     input.name,
-    new Address(input.address),
+    new Coordinate(input.x, input.y),
     new Category(input.category),
     new BusinessHours(input.openHour, input.openMinute, input.closeHour, input.closeMinute),
   );

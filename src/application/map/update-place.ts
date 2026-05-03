@@ -1,16 +1,17 @@
 import type { MapId } from "@/domain/map/map";
 import type { PlaceId } from "@/domain/map/place";
 import type { MapRepository } from "@/domain/map/map-repository";
-import { Address } from "@/domain/shared/address";
 import { BusinessHours } from "@/domain/shared/business-hours";
 import { Category, type CategoryValue } from "@/domain/shared/category";
+import { Coordinate } from "@/domain/shared/coordinate";
 
 export type UpdatePlaceInput = {
   mapId: MapId;
   placeId: PlaceId;
   requesterId: string;
   name?: string;
-  address?: string;
+  x?: number;
+  y?: number;
   category?: CategoryValue;
   openHour?: number;
   openMinute?: number;
@@ -27,7 +28,9 @@ export async function updatePlace(
   if (map.ownerId !== input.requesterId) throw new Error("Not authorized");
 
   if (input.name !== undefined) map.renamePlace(input.placeId, input.name);
-  if (input.address !== undefined) map.changePlaceAddress(input.placeId, new Address(input.address));
+  if (input.x !== undefined && input.y !== undefined) {
+    map.changePlaceCoordinate(input.placeId, new Coordinate(input.x, input.y));
+  }
   if (input.category !== undefined) map.changePlaceCategory(input.placeId, new Category(input.category));
 
   const { openHour, openMinute, closeHour, closeMinute } = input;

@@ -11,7 +11,13 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/maps/[mapId]">)
     name: map.name,
     ownerId: map.ownerId,
     places: map.places,
-    paths: map.paths,
+    paths: map.paths.map((p) => ({
+      id: p.id,
+      fromPlaceId: p.fromPlaceId,
+      toPlaceId: p.toPlaceId,
+      transport: p.transport.value,
+      distanceKm: p.distanceKm,
+    })),
   });
 }
 

@@ -20,7 +20,8 @@ export async function createCharacter(
   ownerId: UserId,
   name: string,
 ): Promise<string> {
-  const character = new Character(randomUUID(), name, ownerId, generateTraits());
+  const seed = Math.floor(Math.random() * 0x100000000);
+  const character = new Character(randomUUID(), name, ownerId, generateTraits(), seed);
   await repo.save(character);
   return character.id;
 }

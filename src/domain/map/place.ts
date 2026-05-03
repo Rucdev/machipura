@@ -1,6 +1,6 @@
-import type { Address } from "../shared/address";
 import type { BusinessHours } from "../shared/business-hours";
 import type { Category } from "../shared/category";
+import type { Coordinate } from "../shared/coordinate";
 
 export type PlaceId = string;
 
@@ -8,7 +8,7 @@ export class Place {
   constructor(
     readonly id: PlaceId,
     public name: string,
-    public address: Address,
+    public coordinate: Coordinate,
     public category: Category,
     public businessHours: BusinessHours,
   ) {}
@@ -18,8 +18,8 @@ export class Place {
     this.name = name;
   }
 
-  changeAddress(address: Address): void {
-    this.address = address;
+  changeCoordinate(coordinate: Coordinate): void {
+    this.coordinate = coordinate;
   }
 
   changeCategory(category: Category): void {

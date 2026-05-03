@@ -8,6 +8,7 @@ import { Nav } from "@/components/nav";
 type ActionLog = {
   id: string;
   placeId: string;
+  placeName: string | null;
   arrivedAt: string;
   travelDurationMinutes: number;
   action: string;
@@ -51,50 +52,68 @@ export default function JourneyPage({ params }: { params: Promise<{ journeyId: s
 
   if (!journey) {
     return (
-      <div className="flex flex-col min-h-full">
+      <div className="flex flex-col min-h-full bg-white dark:bg-gray-950">
         <Nav />
-        <p className="p-8 text-sm text-gray-500">読み込み中...</p>
+        <p className="p-8 text-sm text-gray-500 dark:text-gray-400">読み込み中...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col min-h-full bg-white dark:bg-gray-950">
       <Nav />
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8 space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Journey記録</h1>
-          <Link href={`/maps/${journey.mapId}`} className="text-sm text-gray-500 hover:text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Journey記録</h1>
+          <Link href={`/maps/${journey.mapId}`} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
             マップに戻る
           </Link>
         </div>
 
-        <div className="text-sm text-gray-500 space-y-1">
+        <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
           <p>出発時刻: {formatTime(journey.startedAt)}</p>
           <p>ステータス: {journey.status === "completed" ? "完了" : "進行中"}</p>
           <p>経由地点数: {journey.logs.length}</p>
         </div>
 
         <section>
-          <h2 className="text-lg font-semibold mb-4">軌跡</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">軌跡</h2>
           {journey.logs.length === 0 ? (
-            <p className="text-sm text-gray-500">記録がありません</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">記録がありません</p>
           ) : (
-            <ol className="relative border-l border-gray-200 space-y-6 ml-3">
-              {journey.logs.map((log, i) => (
-                <li key={log.id} className="ml-6">
-                  <span className="absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-white text-xs font-bold">
-                    {i + 1}
-                  </span>
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-sm font-medium">{formatTime(log.arrivedAt)}</span>
-                    <span className="text-xs text-gray-400">
-                      ({formatDuration(log.travelDurationMinutes)}かけて到着)
+            <ol className="relative border-l border-gray-200 dark:border-gray-700 space-y-6 ml-3">
+              {journey.logs.map((log, i) => {
+                const isDepart = i === 0;
+                const isArrive = i === journey.logs.length - 1;
+                const isMilestone = isDepart || isArrive;
+                return (
+                  <li key={log.id} className="ml-6">
+                    <span className={`absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                      isMilestone
+                        ? "bg-indigo-600 dark:bg-indigo-400 text-white dark:text-gray-900"
+                        : "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
+                    }`}>
+                      {isDepart ? "▶" : isArrive ? "★" : i}
                     </span>
-                  </div>
-                  <p className="text-sm text-gray-700">{log.action}</p>
-                </li>
-              ))}
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatTime(log.arrivedAt)}</span>
+                      {log.placeName && (
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                          @ {log.placeName}
+                        </span>
+                      )}
+                      {!isMilestone && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          ({formatDuration(log.travelDurationMinutes)}かけて到着)
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-sm ${isMilestone ? "font-semibold text-indigo-700 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300"}`}>
+                      {log.action}
+                    </p>
+                  </li>
+                );
+              })}
             </ol>
           )}
         </section>

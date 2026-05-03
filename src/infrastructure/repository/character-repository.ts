@@ -33,6 +33,7 @@ export class DrizzleCharacterRepository implements CharacterRepository {
         name: character.name,
         ownerId: character.ownerId,
         traits: character.traits.weights,
+        seed: character.seed,
       })
       .onConflictDoUpdate({
         target: characters.id,
@@ -46,6 +47,6 @@ export class DrizzleCharacterRepository implements CharacterRepository {
 
   private reconstruct(row: typeof characters.$inferSelect): Character {
     const weights = row.traits as Partial<Record<CategoryValue, ActionWeights>>;
-    return new Character(row.id, row.name, row.ownerId, new Traits(weights));
+    return new Character(row.id, row.name, row.ownerId, new Traits(weights), row.seed);
   }
 }

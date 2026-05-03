@@ -1,7 +1,6 @@
 import { requireSession } from "@/infrastructure/auth/get-session";
 import { mapRepo } from "@/infrastructure/db/repos";
 import { addPath } from "@/application/map/add-path";
-import type { TransportValue } from "@/domain/shared/transport";
 
 export async function POST(request: Request, ctx: RouteContext<"/api/maps/[mapId]/paths">) {
   try {
@@ -13,8 +12,6 @@ export async function POST(request: Request, ctx: RouteContext<"/api/maps/[mapId
       requesterId: session.userId,
       fromPlaceId: body.fromPlaceId,
       toPlaceId: body.toPlaceId,
-      transport: body.transport as TransportValue,
-      distanceKm: body.distanceKm,
     });
     return Response.json({ id }, { status: 201 });
   } catch (e) {

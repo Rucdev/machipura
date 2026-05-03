@@ -6,11 +6,9 @@ import type { MapId } from "@/domain/map/map";
 import type { MapRepository } from "@/domain/map/map-repository";
 import { Place } from "@/domain/map/place";
 import { Path } from "@/domain/map/path";
-import { Address } from "@/domain/shared/address";
 import { Category, type CategoryValue } from "@/domain/shared/category";
+import { Coordinate } from "@/domain/shared/coordinate";
 import { BusinessHours } from "@/domain/shared/business-hours";
-import { Transport, type TransportValue } from "@/domain/shared/transport";
-import { Distance } from "@/domain/shared/distance";
 
 export class DrizzleMapRepository implements MapRepository {
   constructor(private readonly db: Db) {}
@@ -38,7 +36,8 @@ export class DrizzleMapRepository implements MapRepository {
             id: p.id,
             mapId: map.id,
             name: p.name,
-            address: p.address.value,
+            x: p.coordinate.x,
+            y: p.coordinate.y,
             category: p.category.value,
             openHour: p.businessHours.openHour,
             openMinute: p.businessHours.openMinute,
@@ -56,8 +55,12 @@ export class DrizzleMapRepository implements MapRepository {
             mapId: map.id,
             fromPlaceId: p.fromPlaceId,
             toPlaceId: p.toPlaceId,
-            transport: p.transport.value,
-            distanceKm: p.distance.km,
+            fromCategory: p.fromCategory,
+            toCategory: p.toCategory,
+            fromX: p.fromCoordinate.x,
+            fromY: p.fromCoordinate.y,
+            toX: p.toCoordinate.x,
+            toY: p.toCoordinate.y,
           })),
         );
       }
@@ -81,7 +84,7 @@ export class DrizzleMapRepository implements MapRepository {
         new Place(
           p.id,
           p.name,
-          new Address(p.address),
+          new Coordinate(p.x, p.y),
           new Category(p.category as CategoryValue),
           new BusinessHours(p.openHour, p.openMinute, p.closeHour, p.closeMinute),
         ),
@@ -93,8 +96,10 @@ export class DrizzleMapRepository implements MapRepository {
           p.id,
           p.fromPlaceId,
           p.toPlaceId,
-          new Transport(p.transport as TransportValue),
-          new Distance(p.distanceKm),
+          p.fromCategory as CategoryValue,
+          p.toCategory as CategoryValue,
+          new Coordinate(p.fromX, p.fromY),
+          new Coordinate(p.toX, p.toY),
         ),
     );
 

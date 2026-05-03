@@ -9,6 +9,7 @@ export class Character {
     public name: string,
     readonly ownerId: UserId,
     readonly traits: Traits,
+    readonly seed: number,
   ) {}
 
   rename(name: string): void {

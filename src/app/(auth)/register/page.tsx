@@ -28,40 +28,40 @@ export default function RegisterPage() {
   return (
     <div className="flex flex-1 items-center justify-center">
       <div className="w-full max-w-sm space-y-6">
-        <h1 className="text-2xl font-bold text-center">アカウント登録</h1>
+        <h1 className="text-2xl font-bold text-center text-gray-900 dark:text-gray-100">アカウント登録</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label htmlFor="email" className="text-sm font-medium">メールアドレス</label>
+            <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">メールアドレス</label>
             <input
               id="email"
               name="email"
               type="email"
               required
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
             />
           </div>
           <div className="space-y-1">
-            <label htmlFor="password" className="text-sm font-medium">パスワード</label>
+            <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">パスワード</label>
             <input
               id="password"
               name="password"
               type="password"
               required
               minLength={8}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
           <button
             type="submit"
-            className="w-full bg-gray-900 text-white rounded px-4 py-2 text-sm font-medium hover:bg-gray-700"
+            className="w-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded px-4 py-2 text-sm font-medium hover:bg-gray-700 dark:hover:bg-gray-300"
           >
             登録
           </button>
         </form>
-        <p className="text-sm text-center text-gray-600">
+        <p className="text-sm text-center text-gray-600 dark:text-gray-400">
           すでにアカウントをお持ちの方は{" "}
-          <Link href="/login" className="underline hover:text-gray-900">ログイン</Link>
+          <Link href="/login" className="underline hover:text-gray-900 dark:hover:text-gray-100">ログイン</Link>
         </p>
       </div>
     </div>

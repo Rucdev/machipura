@@ -1,5 +1,6 @@
-import type { Distance } from "../shared/distance";
-import type { Transport } from "../shared/transport";
+import type { CategoryValue } from "../shared/category";
+import type { Coordinate } from "../shared/coordinate";
+import { Transport, resolveTransport } from "../shared/transport";
 import type { PlaceId } from "./place";
 
 export type PathId = string;
@@ -9,12 +10,29 @@ export class Path {
     readonly id: PathId,
     readonly fromPlaceId: PlaceId,
     readonly toPlaceId: PlaceId,
-    public transport: Transport,
-    public distance: Distance,
+    readonly fromCategory: CategoryValue,
+    readonly toCategory: CategoryValue,
+    public fromCoordinate: Coordinate,
+    public toCoordinate: Coordinate,
   ) {}
 
-  // 移動時間（分）
+  get transport(): Transport {
+    return new Transport(resolveTransport(this.fromCategory, this.toCategory));
+  }
+
+  get distanceKm(): number {
+    return this.fromCoordinate.distanceTo(this.toCoordinate);
+  }
+
   travelDurationMinutes(): number {
-    return (this.distance.km / this.transport.speedKmh()) * 60;
+    return (this.distanceKm / this.transport.speedKmh()) * 60;
+  }
+
+  recalculateFrom(coordinate: Coordinate): void {
+    this.fromCoordinate = coordinate;
+  }
+
+  recalculateTo(coordinate: Coordinate): void {
+    this.toCoordinate = coordinate;
   }
 }

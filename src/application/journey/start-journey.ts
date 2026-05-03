@@ -6,6 +6,7 @@ import type { CharacterId } from "@/domain/character/character";
 import { Journey } from "@/domain/journey/journey";
 import type { JourneyRepository } from "@/domain/journey/journey-repository";
 import { executeRandomWalk } from "@/domain/journey/random-walk";
+import { Action } from "@/domain/shared/action";
 import { randomUUID } from "crypto";
 
 export type StartJourneyInput = {
@@ -40,6 +41,13 @@ export async function startJourney(
     startedAt,
   );
 
+  const startPlace = map.findPlace(input.startPlaceId);
+  if (!startPlace) throw new Error("Start place not found");
+  const goalPlace = map.findPlace(input.goalPlaceId);
+  if (!goalPlace) throw new Error("Goal place not found");
+
+  journey.recordAction(randomUUID(), input.startPlaceId, startedAt, 0, new Action(`${startPlace.name} を出発した`));
+
   const steps = executeRandomWalk(
     map,
     character,
@@ -57,6 +65,9 @@ export async function startJourney(
       step.action,
     );
   }
+
+  const lastTime = steps.length > 0 ? steps[steps.length - 1].arrivedAt : startedAt;
+  journey.recordAction(randomUUID(), input.goalPlaceId, lastTime, 0, new Action(`${goalPlace.name} に到着した`));
 
   journey.complete();
   await journeyRepo.save(journey);
