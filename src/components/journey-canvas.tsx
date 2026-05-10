@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { CategoryValue } from "@/domain/shared/category";
 
 type Place = {
   id: string;
   name: string;
   coordinate: { x: number; y: number };
-  category: { value: CategoryValue };
+  category: { id: string; label: string; isStation: boolean };
 };
 type Path = {
   id: string;
@@ -35,16 +34,19 @@ const BUBBLE_PADDING = 6;
 const BUBBLE_MAX_W = 140;
 const BUBBLE_FONT = "11px sans-serif";
 
-const CATEGORY_COLORS: Record<CategoryValue, string> = {
-  cafe: "#a16207",
-  park: "#16a34a",
-  station: "#2563eb",
-  restaurant: "#dc2626",
-  shop: "#7c3aed",
-  museum: "#0891b2",
-  hotel: "#d97706",
-  other: "#6b7280",
-};
+const PALETTE = [
+  "#a16207", "#16a34a", "#2563eb", "#dc2626",
+  "#7c3aed", "#0891b2", "#d97706", "#6b7280",
+  "#db2777", "#059669",
+];
+
+function categoryColor(categoryId: string): string {
+  let hash = 0;
+  for (let i = 0; i < categoryId.length; i++) {
+    hash = (hash * 31 + categoryId.charCodeAt(i)) >>> 0;
+  }
+  return PALETTE[hash % PALETTE.length];
+}
 
 const TRANSPORT_COLORS: Record<string, string> = {
   walk: "#9ca3af",
@@ -97,14 +99,12 @@ function drawBubble(
   const bh = lines.length * lineH + BUBBLE_PADDING * 2;
   const tailH = 8;
 
-  // 吹き出し位置: 上下左右を交互にして重なりを緩和
   const above = (index / total) < 0.5;
   const bx = Math.max(2, Math.min(CANVAS_W - bw - 2, cx - bw / 2));
   const by = above
     ? cy - PLACE_RADIUS - tailH - bh - 2
     : cy + PLACE_RADIUS + tailH + 2;
 
-  // 吹き出し本体
   ctx.beginPath();
   ctx.roundRect(bx, by, bw, bh, 4);
   ctx.fillStyle = theme.bubbleBg;
@@ -113,7 +113,6 @@ function drawBubble(
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // 三角テール
   const tailX = Math.min(Math.max(cx, bx + 10), bx + bw - 10);
   ctx.beginPath();
   if (above) {
@@ -132,7 +131,6 @@ function drawBubble(
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // テキスト
   ctx.fillStyle = theme.bubbleText;
   ctx.textAlign = "left";
   lines.forEach((line, i) => {
@@ -152,7 +150,6 @@ function render(
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  // grid
   ctx.strokeStyle = theme.grid;
   ctx.lineWidth = 1;
   for (let x = 0; x <= CANVAS_W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke(); }
@@ -161,7 +158,6 @@ function render(
   const placeById = new Map(places.map((p) => [p.id, p]));
   const visitedIds = new Set(logs.map((l) => l.placeId));
 
-  // ルート上のパスを強調、それ以外は薄く
   for (const path of paths) {
     const from = placeById.get(path.fromPlaceId);
     const to = placeById.get(path.toPlaceId);
@@ -179,7 +175,6 @@ function render(
     ctx.setLineDash([]);
   }
 
-  // 軌跡ライン（ログ順に矢印）
   if (logs.length >= 2) {
     ctx.strokeStyle = theme.routeLine;
     ctx.lineWidth = 2.5;
@@ -195,11 +190,10 @@ function render(
     ctx.setLineDash([]);
   }
 
-  // 全place描画（ルート上は明るく）
   for (const place of places) {
     const { x, y } = place.coordinate;
     const onRoute = visitedIds.has(place.id);
-    const color = onRoute ? CATEGORY_COLORS[place.category.value] : theme.dimPlace;
+    const color = onRoute ? categoryColor(place.category.id) : theme.dimPlace;
 
     ctx.beginPath();
     ctx.arc(x, y, PLACE_RADIUS, 0, Math.PI * 2);
@@ -215,7 +209,6 @@ function render(
     ctx.fillText(place.name, x, y - PLACE_RADIUS - 4);
   }
 
-  // 吹き出し（出発・到着以外の中間ステップ）
   const midLogs = logs.slice(1, -1);
   midLogs.forEach((log, i) => {
     const place = placeById.get(log.placeId);
@@ -223,7 +216,6 @@ function render(
     drawBubble(ctx, place.coordinate.x, place.coordinate.y, log.action, theme, i, midLogs.length);
   });
 
-  // 出発マーカー
   const startLog = logs[0];
   const startPlace = startLog ? placeById.get(startLog.placeId) : null;
   if (startPlace) {
@@ -238,7 +230,6 @@ function render(
     ctx.fillText("▶", startPlace.coordinate.x, startPlace.coordinate.y + 3);
   }
 
-  // 到着マーカー
   const goalLog = logs[logs.length - 1];
   const goalPlace = goalLog && goalLog !== startLog ? placeById.get(goalLog.placeId) : null;
   if (goalPlace) {

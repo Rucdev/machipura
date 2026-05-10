@@ -1,24 +1,19 @@
 import { requireSession } from "@/infrastructure/auth/get-session";
-import { mapRepo } from "@/infrastructure/db/repos";
+import { mapRepo, categoryRepo } from "@/infrastructure/db/repos";
 import { addPlace } from "@/application/map/add-place";
-import type { CategoryValue } from "@/domain/shared/category";
 
 export async function POST(request: Request, ctx: RouteContext<"/api/maps/[mapId]/places">) {
   try {
     const session = await requireSession();
     const { mapId } = await ctx.params;
     const body = await request.json();
-    const id = await addPlace(mapRepo, {
+    const id = await addPlace(mapRepo, categoryRepo, {
       mapId,
       requesterId: session.userId,
       name: body.name,
       x: body.x,
       y: body.y,
-      category: body.category as CategoryValue,
-      openHour: body.openHour,
-      openMinute: body.openMinute,
-      closeHour: body.closeHour,
-      closeMinute: body.closeMinute,
+      categoryId: body.categoryId,
     });
     return Response.json({ id }, { status: 201 });
   } catch (e) {

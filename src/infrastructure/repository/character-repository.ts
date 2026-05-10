@@ -5,7 +5,7 @@ import { Character, type CharacterId } from "@/domain/character/character";
 import type { CharacterRepository } from "@/domain/character/character-repository";
 import type { UserId } from "@/domain/map/map";
 import { Traits, type ActionWeights } from "@/domain/shared/traits";
-import type { CategoryValue } from "@/domain/shared/category";
+import type { CategoryId } from "@/domain/shared/category";
 
 export class DrizzleCharacterRepository implements CharacterRepository {
   constructor(private readonly db: Db) {}
@@ -46,7 +46,7 @@ export class DrizzleCharacterRepository implements CharacterRepository {
   }
 
   private reconstruct(row: typeof characters.$inferSelect): Character {
-    const weights = row.traits as Partial<Record<CategoryValue, ActionWeights>>;
+    const weights = row.traits as Partial<Record<CategoryId, ActionWeights>>;
     return new Character(row.id, row.name, row.ownerId, new Traits(weights), row.seed);
   }
 }

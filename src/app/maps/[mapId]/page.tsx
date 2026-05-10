@@ -4,14 +4,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Nav } from "@/components/nav";
 import { MapCanvas, type CanvasMode } from "@/components/map-canvas";
-import { CATEGORIES, type CategoryValue } from "@/domain/shared/category";
 
+type CategoryItem = { id: string; label: string; isStation: boolean };
 type Place = {
   id: string;
   name: string;
   coordinate: { x: number; y: number };
-  category: { value: CategoryValue };
-  businessHours: { openHour: number; openMinute: number; closeHour: number; closeMinute: number };
+  category: { id: string; label: string; isStation: boolean };
 };
 type Path = {
   id: string;
@@ -23,21 +22,10 @@ type Path = {
 type MapDetail = { id: string; name: string; ownerId: string; places: Place[]; paths: Path[] };
 type Character = { id: string; name: string };
 
-const CATEGORY_LABELS: Record<CategoryValue, string> = {
-  cafe: "カフェ", park: "公園", station: "駅", restaurant: "レストラン",
-  shop: "ショップ", museum: "博物館", hotel: "ホテル", other: "その他",
-};
-
-function pad(n: number) { return String(n).padStart(2, "0"); }
-
-const BLANK_PLACE_FORM = {
-  name: "", category: "cafe" as CategoryValue,
-  openHour: 9, openMinute: 0, closeHour: 21, closeMinute: 0,
-};
+const BLANK_PLACE_FORM = { name: "", categoryId: "" };
 
 const INPUT_CLS = "w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500";
 const SELECT_CLS = "w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100";
-const NUM_CLS = "w-12 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100";
 const BTN_PRIMARY = "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded px-3 py-1 text-sm hover:bg-gray-700 dark:hover:bg-gray-300";
 const BTN_GHOST = "text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200";
 
@@ -45,6 +33,7 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
   const router = useRouter();
   const [mapId, setMapId] = useState("");
   const [map, setMap] = useState<MapDetail | null>(null);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [canvasMode, setCanvasMode] = useState<CanvasMode>("normal");
@@ -57,6 +46,13 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
 
   useEffect(() => {
     params.then(({ mapId }) => { setMapId(mapId); loadMap(mapId); });
+    fetch("/api/categories").then(async (r) => {
+      if (r.ok) {
+        const cats: CategoryItem[] = await r.json();
+        setCategories(cats);
+        if (cats.length > 0) setPlaceForm((f) => ({ ...f, categoryId: cats[0].id }));
+      }
+    });
     fetch("/api/characters").then(async (r) => {
       if (r.status === 401) { router.push("/login"); return; }
       setCharacters(await r.json());
@@ -74,13 +70,17 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
 
   async function handleAddPlace(e: React.FormEvent) {
     e.preventDefault();
-    if (!pendingCoord) return;
+    if (!pendingCoord || !placeForm.categoryId) return;
     const res = await fetch(`/api/maps/${mapId}/places`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...placeForm, x: pendingCoord.x, y: pendingCoord.y }),
+      body: JSON.stringify({ name: placeForm.name, categoryId: placeForm.categoryId, x: pendingCoord.x, y: pendingCoord.y }),
     });
-    if (res.ok) { setPlaceForm(BLANK_PLACE_FORM); setPendingCoord(null); loadMap(mapId); }
+    if (res.ok) {
+      setPlaceForm({ name: "", categoryId: categories[0]?.id ?? "" });
+      setPendingCoord(null);
+      loadMap(mapId);
+    }
   }
 
   async function handleDeletePlace(placeId: string) {
@@ -144,7 +144,6 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
     <div className="flex flex-col min-h-full bg-white dark:bg-gray-950">
       <Nav />
       <main className="flex-1 w-full px-4 py-8 max-w-6xl mx-auto space-y-6">
-        {/* header */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{map.name}</h1>
           {isOwner && (
@@ -154,10 +153,8 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
           )}
         </div>
 
-        {/* canvas + side panel */}
         <div className="flex gap-6 items-start">
           <div className="flex-1 min-w-0 space-y-2">
-            {/* mode toggle */}
             {isOwner && (
               <div className="flex items-center gap-2">
                 <button
@@ -200,17 +197,11 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
             />
           </div>
 
-          {/* side panel */}
           <div className="w-72 shrink-0 space-y-4">
-            {/* selected place info */}
             {selectedPlace && (
               <div className="border border-indigo-200 dark:border-indigo-800 rounded p-4 space-y-2 bg-indigo-50 dark:bg-indigo-950">
                 <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">{selectedPlace.name}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{CATEGORY_LABELS[selectedPlace.category.value]}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {pad(selectedPlace.businessHours.openHour)}:{pad(selectedPlace.businessHours.openMinute)}〜
-                  {pad(selectedPlace.businessHours.closeHour)}:{pad(selectedPlace.businessHours.closeMinute)}
-                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{selectedPlace.category.label}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
                   ({selectedPlace.coordinate.x}, {selectedPlace.coordinate.y})
                 </p>
@@ -223,7 +214,6 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
               </div>
             )}
 
-            {/* add place form */}
             {isOwner && pendingCoord && (
               <div className="border border-dashed border-indigo-300 dark:border-indigo-700 rounded p-4 space-y-3 bg-white dark:bg-gray-900">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -232,40 +222,31 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
                     ({pendingCoord.x}, {pendingCoord.y})
                   </span>
                 </h3>
-                <form onSubmit={handleAddPlace} className="space-y-2">
-                  <input placeholder="地点名" required value={placeForm.name}
-                    onChange={(e) => setPlaceForm({ ...placeForm, name: e.target.value })}
-                    className={INPUT_CLS} />
-                  <select value={placeForm.category}
-                    onChange={(e) => setPlaceForm({ ...placeForm, category: e.target.value as CategoryValue })}
-                    className={SELECT_CLS}>
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
-                  </select>
-                  <div className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300">
-                    <input type="number" min={0} max={23} value={placeForm.openHour}
-                      onChange={(e) => setPlaceForm({ ...placeForm, openHour: Number(e.target.value) })} className={NUM_CLS} />
-                    <span>:</span>
-                    <input type="number" min={0} max={59} value={placeForm.openMinute}
-                      onChange={(e) => setPlaceForm({ ...placeForm, openMinute: Number(e.target.value) })} className={NUM_CLS} />
-                    <span>〜</span>
-                    <input type="number" min={0} max={23} value={placeForm.closeHour}
-                      onChange={(e) => setPlaceForm({ ...placeForm, closeHour: Number(e.target.value) })} className={NUM_CLS} />
-                    <span>:</span>
-                    <input type="number" min={0} max={59} value={placeForm.closeMinute}
-                      onChange={(e) => setPlaceForm({ ...placeForm, closeMinute: Number(e.target.value) })} className={NUM_CLS} />
-                  </div>
-                  <div className="flex gap-2">
-                    <button type="submit" className={BTN_PRIMARY}>追加</button>
-                    <button type="button" onClick={() => { setPendingCoord(null); setPlaceForm(BLANK_PLACE_FORM); }} className={BTN_GHOST}>キャンセル</button>
-                  </div>
-                </form>
+                {categories.length === 0 ? (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    カテゴリがありません。管理画面でカテゴリを追加してください。
+                  </p>
+                ) : (
+                  <form onSubmit={handleAddPlace} className="space-y-2">
+                    <input placeholder="地点名" required value={placeForm.name}
+                      onChange={(e) => setPlaceForm({ ...placeForm, name: e.target.value })}
+                      className={INPUT_CLS} />
+                    <select value={placeForm.categoryId}
+                      onChange={(e) => setPlaceForm({ ...placeForm, categoryId: e.target.value })}
+                      className={SELECT_CLS}>
+                      {categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    </select>
+                    <div className="flex gap-2">
+                      <button type="submit" className={BTN_PRIMARY}>追加</button>
+                      <button type="button" onClick={() => { setPendingCoord(null); setPlaceForm({ name: "", categoryId: categories[0]?.id ?? "" }); }} className={BTN_GHOST}>キャンセル</button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
-
           </div>
         </div>
 
-        {/* Journey section */}
         {map.places.length >= 2 && characters.length > 0 && (
           <section className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Journeyを始める</h2>

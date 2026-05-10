@@ -1,8 +1,7 @@
 import type { MapId } from "@/domain/map/map";
 import type { PlaceId } from "@/domain/map/place";
 import type { MapRepository } from "@/domain/map/map-repository";
-import { BusinessHours } from "@/domain/shared/business-hours";
-import { Category, type CategoryValue } from "@/domain/shared/category";
+import type { CategoryRepository } from "@/domain/shared/category-repository";
 import { Coordinate } from "@/domain/shared/coordinate";
 
 export type UpdatePlaceInput = {
@@ -12,18 +11,15 @@ export type UpdatePlaceInput = {
   name?: string;
   x?: number;
   y?: number;
-  category?: CategoryValue;
-  openHour?: number;
-  openMinute?: number;
-  closeHour?: number;
-  closeMinute?: number;
+  categoryId?: string;
 };
 
 export async function updatePlace(
-  repo: MapRepository,
+  mapRepo: MapRepository,
+  categoryRepo: CategoryRepository,
   input: UpdatePlaceInput,
 ): Promise<void> {
-  const map = await repo.findById(input.mapId);
+  const map = await mapRepo.findById(input.mapId);
   if (!map) throw new Error("Map not found");
   if (map.ownerId !== input.requesterId) throw new Error("Not authorized");
 
@@ -31,20 +27,11 @@ export async function updatePlace(
   if (input.x !== undefined && input.y !== undefined) {
     map.changePlaceCoordinate(input.placeId, new Coordinate(input.x, input.y));
   }
-  if (input.category !== undefined) map.changePlaceCategory(input.placeId, new Category(input.category));
-
-  const { openHour, openMinute, closeHour, closeMinute } = input;
-  if (
-    openHour !== undefined &&
-    openMinute !== undefined &&
-    closeHour !== undefined &&
-    closeMinute !== undefined
-  ) {
-    map.changePlaceBusinessHours(
-      input.placeId,
-      new BusinessHours(openHour, openMinute, closeHour, closeMinute),
-    );
+  if (input.categoryId !== undefined) {
+    const category = await categoryRepo.findCategoryById(input.categoryId);
+    if (!category) throw new Error("Category not found");
+    map.changePlaceCategory(input.placeId, category);
   }
 
-  await repo.save(map);
+  await mapRepo.save(map);
 }

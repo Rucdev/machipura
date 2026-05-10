@@ -1,14 +1,13 @@
 import { eq } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { maps, paths, places } from "../db/schema";
+import { maps, paths, places, categories } from "../db/schema";
 import { MapAggregate } from "@/domain/map/map";
 import type { MapId } from "@/domain/map/map";
 import type { MapRepository } from "@/domain/map/map-repository";
 import { Place } from "@/domain/map/place";
 import { Path } from "@/domain/map/path";
-import { Category, type CategoryValue } from "@/domain/shared/category";
+import { Category } from "@/domain/shared/category";
 import { Coordinate } from "@/domain/shared/coordinate";
-import { BusinessHours } from "@/domain/shared/business-hours";
 
 export class DrizzleMapRepository implements MapRepository {
   constructor(private readonly db: Db) {}
@@ -38,11 +37,7 @@ export class DrizzleMapRepository implements MapRepository {
             name: p.name,
             x: p.coordinate.x,
             y: p.coordinate.y,
-            category: p.category.value,
-            openHour: p.businessHours.openHour,
-            openMinute: p.businessHours.openMinute,
-            closeHour: p.businessHours.closeHour,
-            closeMinute: p.businessHours.closeMinute,
+            categoryId: p.category.id,
           })),
         );
       }
@@ -55,8 +50,8 @@ export class DrizzleMapRepository implements MapRepository {
             mapId: map.id,
             fromPlaceId: p.fromPlaceId,
             toPlaceId: p.toPlaceId,
-            fromCategory: p.fromCategory,
-            toCategory: p.toCategory,
+            fromIsStation: p.fromIsStation,
+            toIsStation: p.toIsStation,
             fromX: p.fromCoordinate.x,
             fromY: p.fromCoordinate.y,
             toX: p.toCoordinate.x,
@@ -79,16 +74,19 @@ export class DrizzleMapRepository implements MapRepository {
       where: eq(paths.mapId, row.id),
     });
 
-    const domainPlaces = placeRows.map(
-      (p) =>
-        new Place(
-          p.id,
-          p.name,
-          new Coordinate(p.x, p.y),
-          new Category(p.category as CategoryValue),
-          new BusinessHours(p.openHour, p.openMinute, p.closeHour, p.closeMinute),
-        ),
-    );
+    const categoryIds = [...new Set(placeRows.map((p) => p.categoryId))];
+    const categoryRows = categoryIds.length > 0
+      ? await this.db.query.categories.findMany()
+      : [];
+    const categoryMap = new Map(categoryRows.map((c) => [c.id, c]));
+
+    const domainPlaces = placeRows.map((p) => {
+      const cat = categoryMap.get(p.categoryId);
+      const category = cat
+        ? new Category(cat.id, cat.label, cat.isStation)
+        : new Category(p.categoryId, p.categoryId, false);
+      return new Place(p.id, p.name, new Coordinate(p.x, p.y), category);
+    });
 
     const domainPaths = pathRows.map(
       (p) =>
@@ -96,8 +94,8 @@ export class DrizzleMapRepository implements MapRepository {
           p.id,
           p.fromPlaceId,
           p.toPlaceId,
-          p.fromCategory as CategoryValue,
-          p.toCategory as CategoryValue,
+          p.fromIsStation,
+          p.toIsStation,
           new Coordinate(p.fromX, p.fromY),
           new Coordinate(p.toX, p.toY),
         ),

@@ -10,7 +10,12 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/maps/[mapId]">)
     id: map.id,
     name: map.name,
     ownerId: map.ownerId,
-    places: map.places,
+    places: map.places.map((p) => ({
+      id: p.id,
+      name: p.name,
+      coordinate: p.coordinate,
+      category: { id: p.category.id, label: p.category.label, isStation: p.category.isStation },
+    })),
     paths: map.paths.map((p) => ({
       id: p.id,
       fromPlaceId: p.fromPlaceId,

@@ -1,20 +1,13 @@
-export const CATEGORIES = [
-  "cafe",
-  "park",
-  "station",
-  "restaurant",
-  "shop",
-  "museum",
-  "hotel",
-  "other",
-] as const;
-
-export type CategoryValue = (typeof CATEGORIES)[number];
+export type CategoryId = string;
 
 export class Category {
-  constructor(readonly value: CategoryValue) {}
+  constructor(
+    readonly id: CategoryId,
+    readonly label: string,
+    readonly isStation: boolean,
+  ) {}
 
   equals(other: Category): boolean {
-    return this.value === other.value;
+    return this.id === other.id;
   }
 }

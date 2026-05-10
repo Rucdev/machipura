@@ -5,6 +5,7 @@ import type { PlaceId } from "@/domain/map/place";
 import type { CharacterId } from "@/domain/character/character";
 import { Journey } from "@/domain/journey/journey";
 import type { JourneyRepository } from "@/domain/journey/journey-repository";
+import type { CategoryRepository } from "@/domain/shared/category-repository";
 import { executeRandomWalk } from "@/domain/journey/random-walk";
 import { Action } from "@/domain/shared/action";
 import { randomUUID } from "crypto";
@@ -21,15 +22,24 @@ export async function startJourney(
   mapRepo: MapRepository,
   characterRepo: CharacterRepository,
   journeyRepo: JourneyRepository,
+  categoryRepo: CategoryRepository,
   input: StartJourneyInput,
 ): Promise<string> {
-  const [map, character] = await Promise.all([
+  const [map, character, allActions] = await Promise.all([
     mapRepo.findById(input.mapId),
     characterRepo.findById(input.characterId),
+    categoryRepo.findAllActions(),
   ]);
   if (!map) throw new Error("Map not found");
   if (!character) throw new Error("Character not found");
   if (character.ownerId !== input.requesterId) throw new Error("Not authorized");
+
+  const actionsByCategoryId = new Map<string, string[]>();
+  for (const action of allActions) {
+    const list = actionsByCategoryId.get(action.categoryId) ?? [];
+    list.push(action.description);
+    actionsByCategoryId.set(action.categoryId, list);
+  }
 
   const startedAt = new Date();
   const journey = new Journey(
@@ -54,6 +64,7 @@ export async function startJourney(
     input.startPlaceId,
     input.goalPlaceId,
     startedAt,
+    actionsByCategoryId,
   );
 
   for (const step of steps) {

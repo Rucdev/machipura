@@ -15,7 +15,7 @@ export async function register(email: string, password: string): Promise<string>
 
   const passwordHash = await argon2id.hash(password);
   const id = randomUUID();
-  await db.insert(users).values({ id, email, passwordHash });
+  await db.insert(users).values({ id, email, passwordHash, isSuperUser: false });
   return id;
 }
 
@@ -36,7 +36,7 @@ export async function logout(sessionId: string): Promise<void> {
   await db.delete(sessions).where(eq(sessions.id, sessionId));
 }
 
-export async function validateSession(sessionId: string): Promise<{ userId: string } | null> {
+export async function validateSession(sessionId: string): Promise<{ userId: string; isSuperUser: boolean } | null> {
   const session = await db.query.sessions.findFirst({
     where: eq(sessions.id, sessionId),
   });
@@ -45,7 +45,9 @@ export async function validateSession(sessionId: string): Promise<{ userId: stri
     await db.delete(sessions).where(eq(sessions.id, sessionId));
     return null;
   }
-  return { userId: session.userId };
+  const user = await db.query.users.findFirst({ where: eq(users.id, session.userId) });
+  if (!user) return null;
+  return { userId: session.userId, isSuperUser: user.isSuperUser };
 }
 
 export { SESSION_COOKIE };

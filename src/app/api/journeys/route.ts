@@ -1,12 +1,12 @@
 import { requireSession } from "@/infrastructure/auth/get-session";
-import { mapRepo, characterRepo, journeyRepo } from "@/infrastructure/db/repos";
+import { mapRepo, characterRepo, journeyRepo, categoryRepo } from "@/infrastructure/db/repos";
 import { startJourney } from "@/application/journey/start-journey";
 
 export async function POST(request: Request) {
   try {
     const session = await requireSession();
     const body = await request.json();
-    const id = await startJourney(mapRepo, characterRepo, journeyRepo, {
+    const id = await startJourney(mapRepo, characterRepo, journeyRepo, categoryRepo, {
       mapId: body.mapId,
       characterId: body.characterId,
       startPlaceId: body.startPlaceId,

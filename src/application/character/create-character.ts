@@ -2,17 +2,10 @@ import { Character } from "@/domain/character/character";
 import type { CharacterRepository } from "@/domain/character/character-repository";
 import type { UserId } from "@/domain/map/map";
 import { Traits } from "@/domain/shared/traits";
-import type { CategoryValue } from "@/domain/shared/category";
-import { CATEGORIES } from "@/domain/shared/category";
 import { randomUUID } from "crypto";
 
 function generateTraits(): Traits {
-  const weights: Traits["weights"] = {};
-  for (const category of CATEGORIES) {
-    // カテゴリごとにランダムな重みを生成
-    weights[category as CategoryValue] = {};
-  }
-  return new Traits(weights);
+  return new Traits({});
 }
 
 export async function createCharacter(

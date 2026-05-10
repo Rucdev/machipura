@@ -2,9 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export function Nav() {
   const router = useRouter();
+  const [isSuperUser, setIsSuperUser] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me").then(async (r) => {
+      if (r.ok) {
+        const data = await r.json();
+        setIsSuperUser(data.isSuperUser === true);
+      }
+    });
+  }, []);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -16,6 +27,9 @@ export function Nav() {
       <div className="flex items-center gap-6">
         <Link href="/" className="font-bold text-lg text-gray-900 dark:text-gray-100">machipura</Link>
         <Link href="/characters" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">キャラクター</Link>
+        {isSuperUser && (
+          <Link href="/admin" className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300">管理</Link>
+        )}
       </div>
       <button
         type="button"

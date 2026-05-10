@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
-import type { CategoryValue } from "@/domain/shared/category";
 
 type Place = {
   id: string;
   name: string;
   coordinate: { x: number; y: number };
-  category: { value: CategoryValue };
-  businessHours: { openHour: number; openMinute: number; closeHour: number; closeMinute: number };
+  category: { id: string; label: string; isStation: boolean };
 };
 type Path = {
   id: string;
@@ -37,16 +35,19 @@ const PLACE_RADIUS = 10;
 const CANVAS_W = 640;
 const CANVAS_H = 480;
 
-const CATEGORY_COLORS: Record<CategoryValue, string> = {
-  cafe: "#a16207",
-  park: "#16a34a",
-  station: "#2563eb",
-  restaurant: "#dc2626",
-  shop: "#7c3aed",
-  museum: "#0891b2",
-  hotel: "#d97706",
-  other: "#6b7280",
-};
+const PALETTE = [
+  "#a16207", "#16a34a", "#2563eb", "#dc2626",
+  "#7c3aed", "#0891b2", "#d97706", "#6b7280",
+  "#db2777", "#059669",
+];
+
+function categoryColor(categoryId: string): string {
+  let hash = 0;
+  for (let i = 0; i < categoryId.length; i++) {
+    hash = (hash * 31 + categoryId.charCodeAt(i)) >>> 0;
+  }
+  return PALETTE[hash % PALETTE.length];
+}
 
 const TRANSPORT_COLORS: Record<string, string> = {
   walk: "#9ca3af",
@@ -75,7 +76,6 @@ function renderCanvas(
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  // grid
   ctx.strokeStyle = theme.grid;
   ctx.lineWidth = 1;
   for (let x = 0; x <= CANVAS_W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke(); }
@@ -83,7 +83,6 @@ function renderCanvas(
 
   const placeById = new Map(places.map((p) => [p.id, p]));
 
-  // paths
   for (const path of paths) {
     const from = placeById.get(path.fromPlaceId);
     const to = placeById.get(path.toPlaceId);
@@ -106,7 +105,6 @@ function renderCanvas(
     ctx.fillText(`${path.transport} ${path.distanceKm.toFixed(1)}`, mx, my - 4);
   }
 
-  // dragging line (normal mode: drawing new path)
   if (draggingLine) {
     ctx.beginPath();
     ctx.moveTo(draggingLine.fromX, draggingLine.fromY);
@@ -118,11 +116,10 @@ function renderCanvas(
     ctx.setLineDash([]);
   }
 
-  // places
   for (const place of places) {
     const { x, y } = place.coordinate;
     const isSelected = place.id === selectedPlaceId;
-    const color = CATEGORY_COLORS[place.category.value];
+    const color = categoryColor(place.category.id);
 
     if (isSelected) {
       ctx.beginPath();
@@ -139,7 +136,6 @@ function renderCanvas(
     ctx.lineWidth = isSelected ? 2 : 1.5;
     ctx.stroke();
 
-    // 編集モードはアイコン表示
     if (mode === "edit") {
       ctx.font = "bold 9px sans-serif";
       ctx.fillStyle = "rgba(255,255,255,0.9)";
@@ -153,7 +149,6 @@ function renderCanvas(
     ctx.fillText(place.name, x, y - PLACE_RADIUS - 4);
   }
 
-  // pending coord
   if (pendingCoord) {
     ctx.beginPath();
     ctx.arc(pendingCoord.x, pendingCoord.y, PLACE_RADIUS, 0, Math.PI * 2);
@@ -182,11 +177,9 @@ export function MapCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDark, setIsDark] = useState(false);
 
-  // edit mode: drag to move
   const moveDragRef = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
   const isMovingRef = useRef(false);
 
-  // normal mode: drag from place to place for path
   const pathDragRef = useRef<{ fromId: string; fromX: number; fromY: number } | null>(null);
   const [draggingLine, setDraggingLine] = useState<{ fromX: number; fromY: number; toX: number; toY: number } | null>(null);
 
@@ -240,7 +233,6 @@ export function MapCanvas({
         isMovingRef.current = false;
       }
     } else {
-      // normal mode: start drawing path from a place
       if (hit) {
         pathDragRef.current = { fromId: hit.id, fromX: hit.coordinate.x, fromY: hit.coordinate.y };
       }

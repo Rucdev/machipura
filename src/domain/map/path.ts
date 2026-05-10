@@ -1,4 +1,3 @@
-import type { CategoryValue } from "../shared/category";
 import type { Coordinate } from "../shared/coordinate";
 import { Transport, resolveTransport } from "../shared/transport";
 import type { PlaceId } from "./place";
@@ -10,14 +9,14 @@ export class Path {
     readonly id: PathId,
     readonly fromPlaceId: PlaceId,
     readonly toPlaceId: PlaceId,
-    readonly fromCategory: CategoryValue,
-    readonly toCategory: CategoryValue,
+    readonly fromIsStation: boolean,
+    readonly toIsStation: boolean,
     public fromCoordinate: Coordinate,
     public toCoordinate: Coordinate,
   ) {}
 
   get transport(): Transport {
-    return new Transport(resolveTransport(this.fromCategory, this.toCategory));
+    return new Transport(resolveTransport(this.fromIsStation, this.toIsStation));
   }
 
   get distanceKm(): number {

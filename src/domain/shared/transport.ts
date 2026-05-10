@@ -1,5 +1,3 @@
-import type { CategoryValue } from "./category";
-
 export const TRANSPORTS = ["walk", "bicycle", "car", "train", "bus"] as const;
 
 export type TransportValue = (typeof TRANSPORTS)[number];
@@ -25,11 +23,10 @@ export class Transport {
 }
 
 // 駅同士は電車で確定
-// 駅↔その他は バス（幹線移動）
-// その他同士は 徒歩・自転車・車から距離で選択
-export function resolveTransport(from: CategoryValue, to: CategoryValue): TransportValue {
-  const isStation = (c: CategoryValue) => c === "station";
-  if (isStation(from) && isStation(to)) return "train";
-  if (isStation(from) || isStation(to)) return "bus";
+// 駅↔その他はバス（幹線移動）
+// その他同士は徒歩
+export function resolveTransport(fromIsStation: boolean, toIsStation: boolean): TransportValue {
+  if (fromIsStation && toIsStation) return "train";
+  if (fromIsStation || toIsStation) return "bus";
   return "walk";
 }

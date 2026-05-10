@@ -1,8 +1,7 @@
 import { requireSession } from "@/infrastructure/auth/get-session";
-import { mapRepo } from "@/infrastructure/db/repos";
+import { mapRepo, categoryRepo } from "@/infrastructure/db/repos";
 import { removePlace } from "@/application/map/remove-place";
 import { updatePlace } from "@/application/map/update-place";
-import type { CategoryValue } from "@/domain/shared/category";
 
 export async function PATCH(
   request: Request,
@@ -12,18 +11,14 @@ export async function PATCH(
     const session = await requireSession();
     const { mapId, placeId } = await ctx.params;
     const body = await request.json();
-    await updatePlace(mapRepo, {
+    await updatePlace(mapRepo, categoryRepo, {
       mapId,
       placeId,
       requesterId: session.userId,
       name: body.name,
       x: body.x,
       y: body.y,
-      category: body.category as CategoryValue | undefined,
-      openHour: body.openHour,
-      openMinute: body.openMinute,
-      closeHour: body.closeHour,
-      closeMinute: body.closeMinute,
+      categoryId: body.categoryId,
     });
     return new Response(null, { status: 204 });
   } catch (e) {

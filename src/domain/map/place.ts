@@ -1,4 +1,3 @@
-import type { BusinessHours } from "../shared/business-hours";
 import type { Category } from "../shared/category";
 import type { Coordinate } from "../shared/coordinate";
 
@@ -10,7 +9,6 @@ export class Place {
     public name: string,
     public coordinate: Coordinate,
     public category: Category,
-    public businessHours: BusinessHours,
   ) {}
 
   rename(name: string): void {
@@ -24,9 +22,5 @@ export class Place {
 
   changeCategory(category: Category): void {
     this.category = category;
-  }
-
-  changeBusinessHours(businessHours: BusinessHours): void {
-    this.businessHours = businessHours;
   }
 }

@@ -1,8 +1,7 @@
 import type { MapId } from "@/domain/map/map";
 import type { MapRepository } from "@/domain/map/map-repository";
 import { Place } from "@/domain/map/place";
-import { BusinessHours } from "@/domain/shared/business-hours";
-import { Category, type CategoryValue } from "@/domain/shared/category";
+import type { CategoryRepository } from "@/domain/shared/category-repository";
 import { Coordinate } from "@/domain/shared/coordinate";
 import { randomUUID } from "crypto";
 
@@ -12,29 +11,28 @@ export type AddPlaceInput = {
   name: string;
   x: number;
   y: number;
-  category: CategoryValue;
-  openHour: number;
-  openMinute: number;
-  closeHour: number;
-  closeMinute: number;
+  categoryId: string;
 };
 
 export async function addPlace(
-  repo: MapRepository,
+  mapRepo: MapRepository,
+  categoryRepo: CategoryRepository,
   input: AddPlaceInput,
 ): Promise<string> {
-  const map = await repo.findById(input.mapId);
+  const map = await mapRepo.findById(input.mapId);
   if (!map) throw new Error("Map not found");
   if (map.ownerId !== input.requesterId) throw new Error("Not authorized");
+
+  const category = await categoryRepo.findCategoryById(input.categoryId);
+  if (!category) throw new Error("Category not found");
 
   const place = new Place(
     randomUUID(),
     input.name,
     new Coordinate(input.x, input.y),
-    new Category(input.category),
-    new BusinessHours(input.openHour, input.openMinute, input.closeHour, input.closeMinute),
+    category,
   );
   map.addPlace(place);
-  await repo.save(map);
+  await mapRepo.save(map);
   return place.id;
 }

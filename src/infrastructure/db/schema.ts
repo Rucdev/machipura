@@ -4,6 +4,7 @@ export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  isSuperUser: integer("is_super_user", { mode: "boolean" }).notNull().default(false),
 });
 
 export const sessions = sqliteTable("sessions", {
@@ -12,6 +13,22 @@ export const sessions = sqliteTable("sessions", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+});
+
+export const categories = sqliteTable("categories", {
+  id: text("id").primaryKey(),
+  label: text("label").notNull(),
+  isStation: integer("is_station", { mode: "boolean" }).notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const categoryActions = sqliteTable("category_actions", {
+  id: text("id").primaryKey(),
+  categoryId: text("category_id")
+    .notNull()
+    .references(() => categories.id, { onDelete: "cascade" }),
+  description: text("description").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
 });
 
 export const maps = sqliteTable("maps", {
@@ -28,11 +45,9 @@ export const places = sqliteTable("places", {
   name: text("name").notNull(),
   x: real("x").notNull(),
   y: real("y").notNull(),
-  category: text("category").notNull(),
-  openHour: integer("open_hour").notNull(),
-  openMinute: integer("open_minute").notNull(),
-  closeHour: integer("close_hour").notNull(),
-  closeMinute: integer("close_minute").notNull(),
+  categoryId: text("category_id")
+    .notNull()
+    .references(() => categories.id),
 });
 
 export const paths = sqliteTable("paths", {
@@ -46,8 +61,8 @@ export const paths = sqliteTable("paths", {
   toPlaceId: text("to_place_id")
     .notNull()
     .references(() => places.id, { onDelete: "cascade" }),
-  fromCategory: text("from_category").notNull(),
-  toCategory: text("to_category").notNull(),
+  fromIsStation: integer("from_is_station", { mode: "boolean" }).notNull().default(false),
+  toIsStation: integer("to_is_station", { mode: "boolean" }).notNull().default(false),
   fromX: real("from_x").notNull(),
   fromY: real("from_y").notNull(),
   toX: real("to_x").notNull(),
@@ -58,7 +73,6 @@ export const characters = sqliteTable("characters", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   ownerId: text("owner_id").notNull(),
-  // Traits はカテゴリごとの行動重みをJSONで保持
   traits: text("traits", { mode: "json" }).notNull(),
   seed: integer("seed").notNull().default(0),
 });

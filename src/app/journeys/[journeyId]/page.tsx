@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Nav } from "@/components/nav";
 import { JourneyCanvas } from "@/components/journey-canvas";
-import type { CategoryValue } from "@/domain/shared/category";
 
 type ActionLog = {
   id: string;
@@ -29,7 +28,7 @@ type Place = {
   id: string;
   name: string;
   coordinate: { x: number; y: number };
-  category: { value: CategoryValue };
+  category: { id: string; label: string; isStation: boolean };
 };
 type Path = {
   id: string;
@@ -96,7 +95,6 @@ export default function JourneyPage({ params }: { params: Promise<{ journeyId: s
           <p>ステータス: {journey.status === "completed" ? "完了" : "進行中"}</p>
         </div>
 
-        {/* Canvas */}
         {mapData && (
           <JourneyCanvas
             places={mapData.places}
@@ -109,7 +107,6 @@ export default function JourneyPage({ params }: { params: Promise<{ journeyId: s
           />
         )}
 
-        {/* タイムライン */}
         <section>
           <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">軌跡</h2>
           {journey.logs.length === 0 ? (

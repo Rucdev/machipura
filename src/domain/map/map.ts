@@ -1,4 +1,3 @@
-import type { BusinessHours } from "../shared/business-hours";
 import type { Category } from "../shared/category";
 import type { Coordinate } from "../shared/coordinate";
 import { Path, type PathId } from "./path";
@@ -57,11 +56,34 @@ export class MapAggregate {
   }
 
   changePlaceCategory(placeId: PlaceId, category: Category): void {
-    this.getPlace(placeId).changeCategory(category);
-  }
-
-  changePlaceBusinessHours(placeId: PlaceId, businessHours: BusinessHours): void {
-    this.getPlace(placeId).changeBusinessHours(businessHours);
+    const place = this.getPlace(placeId);
+    place.changeCategory(category);
+    for (const path of this._paths.values()) {
+      if (path.fromPlaceId === placeId) {
+        const updated = new Path(
+          path.id,
+          path.fromPlaceId,
+          path.toPlaceId,
+          category.isStation,
+          path.toIsStation,
+          path.fromCoordinate,
+          path.toCoordinate,
+        );
+        this._paths.set(path.id, updated);
+      }
+      if (path.toPlaceId === placeId) {
+        const updated = new Path(
+          path.id,
+          path.fromPlaceId,
+          path.toPlaceId,
+          path.fromIsStation,
+          category.isStation,
+          path.fromCoordinate,
+          path.toCoordinate,
+        );
+        this._paths.set(path.id, updated);
+      }
+    }
   }
 
   addPath(fromPlaceId: PlaceId, toPlaceId: PlaceId, id: PathId): Path {
@@ -73,8 +95,8 @@ export class MapAggregate {
       id,
       fromPlaceId,
       toPlaceId,
-      from.category.value,
-      to.category.value,
+      from.category.isStation,
+      to.category.isStation,
       from.coordinate,
       to.coordinate,
     );
@@ -87,7 +109,6 @@ export class MapAggregate {
     this._paths.delete(pathId);
   }
 
-  // 無向グラフとして、placeId から辿れる隣接エッジを返す
   outboundPaths(placeId: PlaceId): { path: Path; nextPlaceId: PlaceId }[] {
     const result: { path: Path; nextPlaceId: PlaceId }[] = [];
     for (const path of this._paths.values()) {
